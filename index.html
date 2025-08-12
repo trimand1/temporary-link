@@ -1,59 +1,56 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-<meta charset="UTF-8">
-<title>Доступ к материалам</title>
-<script>
-  // Настройки
-  const LINK = "https://disk.yandex.ru/d/IFLAvMeyb3aPzQ"; // ← сюда ставим ссылку на папку
-  const DAYS_VALID = 1;
-  const COOKIE_NAME = "access_start_date";
-
-  function setCookie(name, value, days) {
-    let expires = "";
-    if (days) {
-      const date = new Date();
-      date.setTime(date.getTime() + (days*24*60*60*1000));
-      expires = "; expires=" + date.toUTCString();
-    }
-    document.cookie = name + "=" + (value || "")  + expires + "; path=/";
-  }
-
-  function getCookie(name) {
-    const nameEQ = name + "=";
-    const ca = document.cookie.split(';');
-    for(let i=0;i < ca.length;i++) {
-      let c = ca[i];
-      while (c.charAt(0)==' ') c = c.substring(1,c.length);
-      if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length,c.length);
-    }
-    return null;
-  }
-
-  function checkAccess() {
-    let startDate = getCookie(COOKIE_NAME);
-
-    if (!startDate) {
-      // Первый визит — сохраняем дату и даём доступ
-      startDate = new Date().toISOString();
-      setCookie(COOKIE_NAME, startDate, DAYS_VALID + 1); // cookie живёт чуть дольше срока
-      window.location.href = LINK;
-      return;
-    }
-
-    const start = new Date(startDate);
-    const now = new Date();
-    const diffDays = Math.floor((now - start) / (1000 * 60 * 60 * 24));
-
-    if (diffDays <= DAYS_VALID) {
-      window.location.href = LINK;
-    } else {
-      document.getElementById("message").textContent = "Срок доступа истёк.";
-    }
-  }
-</script>
+  <meta charset="UTF-8" />
+  <title>Временный доступ</title>
 </head>
-<body onload="checkAccess()">
-<h2 id="message">Проверка доступа...</h2>
+<body>
+  <div id="message">Загрузка...</div>
+
+  <script>
+    function setCookie(name, value, days) {
+      const d = new Date();
+      d.setTime(d.getTime() + days * 24 * 60 * 60 * 1000);
+      document.cookie = name + "=" + value + ";path=/;SameSite=Lax";
+      console.log(`Cookie ${name} установлена со значением ${value}`);
+    }
+
+    function getCookie(name) {
+      const cookies = document.cookie.split('; ');
+      for (let c of cookies) {
+        const [key, val] = c.split('=');
+        if (key === name) return val;
+      }
+      return null;
+    }
+
+    function checkAccess() {
+      const DAYS_VALID = 7;
+      const now = new Date();
+      const messageDiv = document.getElementById('message');
+      let startDateStr = getCookie('access_start_date');
+
+      if (!startDateStr) {
+        console.log('Cookie не найдена, устанавливаем новую');
+        setCookie('access_start_date', now.toISOString(), DAYS_VALID);
+        messageDiv.textContent = "Доступ открыт! Переадресация на Яндекс.Диск...";
+        // тут можно сделать переход на ссылку
+        // window.location.href = 'https://disk.yandex.ru/d/ВАША_ССЫЛКА';
+      } else {
+        console.log('Найдена cookie:', startDateStr);
+        const startDate = new Date(startDateStr);
+        const diffDays = Math.floor((now - startDate) / (1000 * 60 * 60 * 24));
+        console.log('Прошло дней с начала доступа:', diffDays);
+        if (diffDays < DAYS_VALID) {
+          messageDiv.textContent = `Доступ открыт, осталось дней: ${DAYS_VALID - diffDays}`;
+          // window.location.href = 'https://disk.yandex.ru/d/ВАША_ССЫЛКА';
+        } else {
+          messageDiv.textContent = "Срок доступа истёк.";
+        }
+      }
+    }
+
+    checkAccess();
+  </script>
 </body>
 </html>
